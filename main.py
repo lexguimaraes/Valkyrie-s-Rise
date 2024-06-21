@@ -2,6 +2,7 @@ from PPlay.window import *
 from PPlay.sprite import *
 from PPlay.gameimage import *
 import time
+import menu
 hurt = False
 class enemy():
     def __init__(self,pos):
@@ -19,6 +20,7 @@ class enemy():
         self.difk = 0
         self.knock=1000
         self.flip = False
+        self.hp = 4
         global ch_cooldown
         ch_cooldown=0
         self.attacking = False
@@ -80,14 +82,28 @@ class enemy():
         else:
             self.flip=True
             
-    def loop(self):             
-        self.damage()
-        self.movement()
-        self.direction()
-        self.damaged()
-        self.attack()
-        self.draw()         
-        self.update()    
+    def loop(self):  
+        if self.hp>0:           
+            self.damage()
+            self.movement()
+            self.direction()
+            self.damaged()
+            self.attack()
+            self.update()
+            self.draw()         
+        else:
+            self.sprite.update()
+            if self.hp == 0:
+                self.i_pos = [self.sprite.x,self.sprite.y]
+                self.sprite = Sprite("GoblinDeath.png",4)
+                self.sprite.set_sequence_time(0,3,100,False)
+                self.sprite.set_position(self.i_pos[0],self.i_pos[1])
+                self.death_cd = 100
+            if self.death_cd > 0 :
+                self.sprite.draw()
+                self.sprite.update()
+                self.death_cd-=160*janela.delta_time()
+            self.hp-=1
           
     def draw(self):
         self.hitbox.draw(self.flip,True)
@@ -96,7 +112,7 @@ class enemy():
         self.sprite.update()
         
     def damaged(self):
-        if self.hitbox.collided(a_hitbox) and attacking and self.e_cooldown <= 0 :
+        if self.hitbox.collided(a_hitbox) and attacking and self.e_cooldown <= 0 and not self.attacking :
             self.difk = 100
             self.e_cooldown = 40
             if dashing == True:
@@ -104,10 +120,18 @@ class enemy():
                 self.difk=160  
             if flip == True:
                 self.knock *=-1
-            self.i_pos = [self.sprite.x,self.sprite.y]
-            self.sprite = Sprite("GoblinHurt.png",4)
-            self.sprite.set_sequence_time(0,3,130, False)
-            self.sprite.set_position(self.i_pos[0],self.i_pos[1])
+            print(self.hp)
+            if self.hp>1:
+                self.i_pos = [self.sprite.x,self.sprite.y]
+                self.sprite = Sprite("GoblinHurt.png",4)
+                self.sprite.set_sequence_time(0,3,130, False)
+                self.sprite.set_position(self.i_pos[0],self.i_pos[1])
+            #else:
+                #self.i_pos = [self.sprite.x,self.sprite.y]
+                #self.sprite = Sprite("GoblinHurt.png",4)
+                #self.sprite.set_sequence_time(0,3,200,False)
+                #elf.sprite.set_position(self.i_pos[0],self.i_pos[1])
+            self.hp-=1
         if self.difk >0:
             self.sprite.x +=self.knock*janela.delta_time()
             self.difk -= abs(self.knock*janela.delta_time())
@@ -118,14 +142,13 @@ class enemy():
             self.e_cooldown -=100*janela.delta_time()
 
     def update(self):
-        self.hitbox.set_position(self.sprite.x+190,self.sprite.y+200)
+        self.hitbox.set_position((self.sprite.x) +190,(self.sprite.y) +200)
         if self.flip:
             self.attack_hitbox.set_position(self.hitbox.x-75,self.hitbox.y)
         else:
             self.attack_hitbox.set_position(self.hitbox.x+75,self.hitbox.y)
         #print(self.sprite.is_playing())
         if (not self.sprite.is_playing()) and not self.attacking:
-            print("AAAAAAAAAAAAAAAAAAA")
             self.i_pos = [self.sprite.x,self.sprite.y]
             self.sprite = Sprite("GoblinRun.png",8)
             self.sprite.set_sequence_time(0,6,80, True)
@@ -146,7 +169,7 @@ gravity = 300
 jumping = False
 dif = 0
 difd=0
-enemy1=enemy([250,180])
+
 #enemy2 = enemy([200,350])
 lastpos = []
 flip = 0
@@ -162,9 +185,10 @@ tick = 0
 tempo = 0
 usado = 100
 fps=0
-
-
-while 1:
+playing = 0
+playing = menu.menu()
+enemy1=enemy([200,180])
+while 1 and playing:
     if ch_cooldown>0:
         ch_cooldown-=100*janela.delta_time()
     tempo += janela.delta_time()
