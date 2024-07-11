@@ -18,9 +18,8 @@ def menu():
         exitBtn.draw()
         if mouse.is_over_object(playBtn):
                 if mouse.is_button_pressed(1):
-                    return True
+                    return 1
         elif mouse.is_over_object(exitBtn):
                 if mouse.is_button_pressed(1):
                     exit()
         window.update()
-        
