@@ -1,28 +1,29 @@
 from PPlay.window import *
 from PPlay.sprite import *
 from PPlay.gameimage import *
+from PPlay.mouse import *
 import time
 import menu
 
 playing = False
-paused = True
-playing = menu.menu()
-paused = False
 class enemy():
     def __init__(self,pos,patru):
         self.i_pos = pos
+        self.in_ground = True
+        if self.i_pos[1] < 280:
+            self.in_ground = False
         self.e_cooldown = 0
-        self.hitbox = Sprite("HitBoxRun.png",1)
+        self.hitbox = Sprite("Hitbox.png",1)
         self.sprite = Sprite("GoblinRun.png",8)
         self.sprite.set_sequence_time(0,7,100,True)
         self.sprite.set_position(self.i_pos[0],self.i_pos[1])
-        self.hitbox.set_position(self.sprite.x+190,self.sprite.y+200)
+        self.hitbox.set_position(self.sprite.x+100,self.sprite.y+100)
         self.vel=100
         self.h_cooldown = 0
         self.dif=0
         self.dife = 0
         self.difk = 0
-        self.knock=1000
+        self.knock=500
         self.flip = False
         self.hp = 4
         global ch_cooldown
@@ -92,12 +93,13 @@ class enemy():
             self.flip=True
             
     def loop(self):  
-        if self.hp>0:        
+        if self.hp>0 :        
             self.damage()
             self.damaged()
             self.attack()
             self.direction()
-            self.movement()
+            if firstattack and char.x!= 0:
+                self.movement()
             self.update()
             self.draw()         
         else:
@@ -112,20 +114,23 @@ class enemy():
                 self.sprite.draw()
                 self.sprite.update()
                 self.death_cd-=160*janela.delta_time()
+            else:
+                ListaInimigios.remove(self)
             self.hp-=1
         
     def draw(self):
-        self.hitbox.draw(self.flip,True)
+        #self.hitbox.draw(self.flip,True)
         self.sprite.draw(self.flip)   
-        self.attack_hitbox.draw(self.flip,True)
+        #self.attack_hitbox.draw(self.flip,True)
         self.sprite.update()
         
     def damaged(self):
-        if self.hitbox.collided(a_hitbox) and attacking and self.e_cooldown <= 0 and not self.attacking :
+        if self.hitbox.collided(a_hitbox) and attacking and self.e_cooldown <= 0:#and not self.attacking :
+            self.goblin_attack_cd=0
             self.difk = 100
             self.e_cooldown = 40
             if dashing == True:
-                self.knock = 1750
+                self.knock = 750
                 self.difk=160  
             if flip == True:
                 self.knock *=-1
@@ -133,7 +138,7 @@ class enemy():
             if self.hp>1:
                 self.i_pos = [self.sprite.x,self.sprite.y]
                 self.sprite = Sprite("GoblinHurt.png",4)
-                self.sprite.set_sequence_time(0,3,130, False)
+                self.sprite.set_sequence_time(0,3,100, False)
                 self.sprite.set_position(self.i_pos[0],self.i_pos[1])
             #else:
                 #self.i_pos = [self.sprite.x,self.sprite.y]
@@ -141,21 +146,27 @@ class enemy():
                 #self.sprite.set_sequence_time(0,3,200,False)
                 #elf.sprite.set_position(self.i_pos[0],self.i_pos[1])
             self.hp-=1
+            if dashing:
+                if self.hp>1:
+                    self.hp-=1
         if self.difk >0:
-            #self.sprite.x +=self.knock*janela.delta_time()
+            if(self.knock>0 and self.hitbox.x+self.hitbox.width<self.patrulha[1]):
+                self.sprite.x +=self.knock*janela.delta_time()
+            if(self.knock<0 and self.hitbox.x>self.patrulha[0]):
+                self.sprite.x+=self.knock*janela.delta_time()
             self.difk -= abs(self.knock*janela.delta_time())
-            if self.difk<=0:
-                self.knock=1000    
+        else:
+            self.knock = 500
                     
         if self.e_cooldown>0:
             self.e_cooldown -=100*janela.delta_time()
 
     def update(self):
-        self.hitbox.set_position((self.sprite.x) +190,(self.sprite.y) +200)
+        self.hitbox.set_position((self.sprite.x) +110,(self.sprite.y) +100)
         if self.flip:
-            self.attack_hitbox.set_position(self.hitbox.x-75,self.hitbox.y)
+            self.attack_hitbox.set_position(self.hitbox.x-50,self.hitbox.y)
         else:
-            self.attack_hitbox.set_position(self.hitbox.x+75,self.hitbox.y)
+            self.attack_hitbox.set_position(self.hitbox.x+50,self.hitbox.y)
         #print(self.sprite.is_playing())
         if (not self.sprite.is_playing()) and not self.attacking:
             self.i_pos = [self.sprite.x,self.sprite.y]
@@ -174,10 +185,11 @@ class plataforma():
         self.hitboxladod.set_position(x2,y1+10)
         self.hitboxladoe.set_position(x1,y1+10)
     def loop(self):
-        self.hitboxcima.draw(sprite = True)
-        self.hitboxbaixo.draw(sprite = True)
-        self.hitboxladod.draw(sprite = True)
-        self.hitboxladoe.draw(sprite = True)
+        #self.hitboxcima.draw(sprite = True)
+        #self.hitboxbaixo.draw(sprite = True)
+        #self.hitboxladod.draw(sprite = True)
+        #self.hitboxladoe.draw(sprite = True)
+        pass
         
         
     
@@ -221,6 +233,17 @@ ListaPlataformas = []
 ListaPlataformas.append(plataforma(10*16,21*16,18*16,21*16)) 
 ListaPlataformas.append(plataforma(26*16,37*16,13*16,16*16))
 ListaPlataformas.append(plataforma(43*16,49*16,8*16,11*16))
+firstattack = False
+ListaMoedas = []
+def spawn_moeda(ListaMoedas,x,y):
+    for i in range(3):
+        moeda = Sprite("Moeda.png",4)
+        moeda.set_sequence_time(0,3,110,True) 
+        moeda.set_position(x + i*40, y)
+        ListaMoedas.append(moeda)
+    
+    
+
 def em_solo(char,hitbox, ListaPlataformas):
     if char.y >= 340:
         return 1
@@ -238,12 +261,53 @@ def colide_plat_e(hitbox, ListaPlataformas):
         if(hitbox.collided(i.hitboxladoe)):
             return 1
     return 0 
-    
-while 1 and playing and not paused:
-    if(len(ListaInimigios)== 0):
-        #print("a")
-        ListaInimigios.append(enemy([200,180],[200,800]))
-        pass
+def spawn_moedas(ListaMoedas):
+    spawn_moeda(ListaMoedas,200,16*16)
+    spawn_moeda(ListaMoedas,455,11*16)
+moedas = 0
+coracao = Sprite("Heartscheio.png",1)
+coracao_vazio = Sprite("Heartsvazio.png",1)
+vida = []
+Moeda_hud = Sprite("MoedaHud.png",1)
+Moeda_hud.set_position(0,50)
+playing = menu.menu()
+heart = Sprite("heartanim.png",4)
+heart.set_sequence_time(0,3,100,True)
+heart.set_position(46*16,6*16)
+lista_hearts = []
+lista_hearts.append(heart)
+fase = 1
+slash_sound  = pygame.mixer.Sound("slash.wav")
+musica_ingame = pygame.mixer.Sound("musica_ingame.wav")
+musica_ingame.play(loops= -1)
+musica_ingame.set_volume(0.3)
+while 1:#and playing:
+    vida.clear()
+    for i in range(Player_hp):
+        vida.append(coracao)
+    for i in range(3-Player_hp):
+        vida.append(coracao_vazio)
+    if(len(ListaInimigios)== 0) and firstattack and fase<4:
+        print(len(ListaMoedas))
+        fase+=1
+        if fase == 1:
+            ListaInimigios.append(enemy([200,250],[200,800]))
+            ListaInimigios.append(enemy([25.5*16,2*16],[25.5*16,25*16+11*16+20]))
+        if fase == 2:
+            ListaInimigios.append(enemy([200,250],[200,800]))
+            ListaInimigios.append(enemy([25.5*16,2*16],[25.5*16,25*16+11*16+20]))
+            ListaInimigios.append(enemy([35*16,-50],[35*16+100,800]))
+        if fase == 3:
+            ListaInimigios.append(enemy([200,250],[200,800]))
+            ListaInimigios.append(enemy([25.5*16,2*16],[25.5*16,25*16+11*16+20]))
+            ListaInimigios.append(enemy([35*16,-50],[35*16+100,800]))
+            ListaInimigios.append(enemy([10*16,7*16],[10*16,10*16+11*16+20]))
+            if (len(lista_hearts)== 0):
+                lista_hearts.append(heart)
+            
+        ListaMoedas.clear()
+        spawn_moedas(ListaMoedas)
+        #pass
     if(not Player_hp):
         if (not morto):
             lastpos = [char.x,char.y]
@@ -253,19 +317,21 @@ while 1 and playing and not paused:
             morto = True
             deathtimer = 2.3
         if(char.is_playing() == False and morto and deathtimer <=0):
-            paused = False
             playing = False
-            playing = menu.menu()
-            paused = playing
+            firstattack= False
+            musica_ingame.stop()
+            playing = menu.gameover()
+            fase = 0
+            ListaMoedas.clear()
+            moedas = 0
             Player_hp = 3
             morto = False
+            musica_ingame.play(loops=-1)
             char = Sprite("CharRun.png",8)
             char.set_sequence_time(0,7,100, True) 
             dif = 0
             difd = 0
             char.set_position(0, 340)
-            ListaInimigios.clear()
-            ListaInimigios.append(enemy([200,180],[200,800]))
         deathtimer-=janela.delta_time()
         janela.update()
         fundo.draw()
@@ -291,9 +357,6 @@ while 1 and playing and not paused:
         char.set_sequence_time(0,3,80,True)
         char.set_position(lastpos[0],lastpos[1])
         hurt = False
-    for i in ListaInimigios:
-        i.loop()
-        print("a")
     #enemy2.loop()
     #HITBOX NO CHAR
     if e_cooldown>0:
@@ -308,11 +371,18 @@ while 1 and playing and not paused:
     if not em_solo(char,hitbox, ListaPlataformas):
         char.y+= gravity*janela.delta_time()
     else: 
-        if jumping:
+        if jumping and not attacking:
             jumping = False
             char.stop()
+    
+    
+    for i in lista_hearts:
+        if hitbox.collided(i) and not morto:
+            if(Player_hp<3):
+                Player_hp+=1
+            lista_hearts.remove(i)
     #PULO
-    if (teclado.key_pressed("SPACE") or teclado.key_pressed("W"))and jumping == False and char.file_name != "Hurt.png" and not morto:
+    if (teclado.key_pressed("SPACE") or teclado.key_pressed("W"))and jumping == False and char.file_name != "Hurt.png" and not morto and em_solo(char,hitbox,ListaPlataformas):
         jumping = True
         dif = 100
         usado = 0
@@ -352,6 +422,10 @@ while 1 and playing and not paused:
             char.set_position(lastpos[0],lastpos[1])
             idling = True
     
+    
+    if hitbox.x + hitbox.width > 795 and fase == 4:
+        musica_ingame.stop()
+        menu.win()
     #ANDAR
     walking = False
     if teclado.key_pressed("D") and hitbox.x + hitbox.width< janela.width and dashing == False and not morto and not colide_plat_e(hitbox, ListaPlataformas):
@@ -424,7 +498,11 @@ while 1 and playing and not paused:
     if mouse.Mouse.is_button_pressed(mouse,1) and a_cooldown <=0 and not morto:
         lastpos = [char.x,char.y]
         attacking = True
-        
+        if(not firstattack):
+            ListaInimigios.clear()
+            firstattack = True
+        if(char.x!=0):
+            slash_sound.play()
         if not dashing:
             a_cooldown = 80
             char = Sprite("attack.png",12)
@@ -444,7 +522,6 @@ while 1 and playing and not paused:
         #a_cooldown-=1*janela.delta_time()
         if jumping == True and not dashing and char.file_name!="Hurt.png":
             lastpos = [char.x,char.y]
-            time.sleep(0.001)
             char = Sprite("jump.png",3)
             char.set_sequence_time(0,2,80, True)
             char.set_position(lastpos[0],lastpos[1])  
@@ -463,11 +540,31 @@ while 1 and playing and not paused:
         char.set_sequence_time(0,5,100,True)
         char.set_position(lastpos[0],lastpos[1])
         idling = True
-    janela.draw_text(str(fps),5,5,30,(0,255,0))
-    a_hitbox.draw(flip, True)
-    hitbox.draw(flip,True)
+    for i in ListaMoedas:
+        if char.collided(i) and not morto:
+            ListaMoedas.remove(i)
+            moedas +=1
+            print(moedas)
+    Moeda_hud.draw(sprite = True)
+    janela.draw_text(str(moedas),80,65,43,(255,255,0), "Arial",bold = True)
+    #janela.draw_text(str(fps),5,5,30,(0,255,0))
+    #a_hitbox.draw(flip, True)
     for i in ListaPlataformas:
         i.loop()
+    #hitbox.draw(flip,True)
+    
+    for i in ListaMoedas:
+        i.draw(sprite= True)
+        i.update()
+    for i in lista_hearts:
+        i.draw()
+        i.update()
+    for i,v in enumerate(vida):
+        v.set_position(i*50,0)
+        v.draw(sprite = True)
+    if len(ListaInimigios)>0: 
+        for i in ListaInimigios:
+            i.loop()
     if(not morto):
         char.draw(flip)
         char.update()
